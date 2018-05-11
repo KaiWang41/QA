@@ -1,68 +1,66 @@
 import nltk
+import json
+import spacy
+from nltk.corpus import words
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import stopwords
+from sklearn.feature_extraction import DictVectorizer
+from sklearn.metrics.pairwise import cosine_distances
+
+# OPEN_QUESTION_WORDS = ['what','who','whose','whom','where','when','why','how',
+#                        'which',"what's","who's","where's","how's"]
+# CLOSED_QUESTION_WORDS = ['is','are','am','was','were','do','does,','did','can',
+#                          'could','will','would','shall','should','have','has',
+#                          'had']
+
+stop = set(stopwords.words('english'))
+
+with open('training.json') as json_data:
+    train = json.load(json_data)
+
+with open('documents.json') as json_data:
+    documents = json.load(json_data)
+
+nlp = spacy.load('en')
 
 
-# def process_word(word):
-#     word = word.lower()
-#     lmtz = WordNetLemmatizer()
-#     lemma = lmtz.lemmatize(word, 'v')
-#     if lemma == word:
-#         lemma = lmtz.lemmatize(word, 'n')
-#     return lemma
-
-
-OPEN_QUESTION_WORDS = ['what','who','whose','whom','where','when','why','how',
-                       'which',"what's","who's","where's","how's"]
-CLOSED_QUESTION_WORDS = ['is','are','am','was','were','do','does,','did','can',
-                         'could','will','would','shall','should','have','has',
-                         'had']
-
-
-def to_lower(tokens):
-    return [token.lower() for token in tokens]
-
-
-def get_query_type(query):
-    tokens = nltk.word_tokenize(query)
-    tokens = to_lower(tokens)
-
-    qword = ''
+def get_BOW_lower_nostop_alpha(sent):
+    tokens = nltk.word_tokenize(sent)
+    BOW = {}
     for token in tokens:
-        if token in OPEN_QUESTION_WORDS:
-            qword = token
-            if "'" in qword:
-                qword = qword.split("'")[0]
-            next_token = tokens[tokens.index(token)+1]
-            break
-
-    if qword == '':
-        for (index, token) in enumerate(tokens):
-            if token in CLOSED_QUESTION_WORDS:
-                return 'closed'
-
-    if qword == '':
-        return 'undetermined'
-
-    qtype = 'undetermined'
-    if qword == 'when':
-        qtype = 'time'
-    elif qword == 'where':
-        qtype = 'location'
-    elif qword in ['who','whose','whom']:
-        qtype = 'NE'
-    # elif qword == 'how':
-    #     if next
+        token = token.lower()
+        if token not in stop and token.isalpha():
+            BOW[token] = BOW.get(token, 0) + 1
+    return BOW
 
 
-    return qtype
+for train_case in train[0:2]:
+    question = train_case['question']
+    docid = train_case['docid']
+    para_num = train_case['answer_paragraph']
 
+    para = documents[docid]['text'][para_num]
 
-from nltk import word_tokenize, pos_tag, ne_chunk
-from nltk.chunk import conlltags2tree, tree2conlltags
+    sents = nltk.sent_tokenize(para)
+    # sents = []
+    # for temp_sent in temp_sents:
+    #     strings = temp_sent.split(',')
+    #     sents += [s.strip() for s in strings]
 
-sentence = ""
+    vectorizer = DictVectorizer()
+    BOWs = []
+    for sent in sents:
+        BOW = get_BOW_lower_nostop_alpha(sent)
+        BOWs.append(BOW)
+    vector_space = vectorizer.fit_transform(BOWs)
 
-ne_tree = ne_chunk(pos_tag(word_tokenize(sentence)))
-iob_tagged = tree2conlltags(ne_tree)
-print(iob_tagged)
+    vector1 = vectorizer.transform(get_BOW_lower_nostop_alpha(question))
+
+    sims = []
+
+    for sent in sents:
+        vector2 = vectorizer.transform(get_BOW_lower_nostop_alpha(sent))
+        sim = 1 - cosine_distances(vector1, vector2)
+
+        sims.append(sim)
+        
