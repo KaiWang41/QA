@@ -4,6 +4,7 @@ import spacy
 from nltk.corpus import stopwords
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.metrics.pairwise import cosine_distances
+from string import punctuation
 
 OPEN_QUESTION_WORDS = ['what','who','whose','whom','where','when','why','how',
                        'which',"what's","who's","where's","how's"]
@@ -22,6 +23,10 @@ with open('documents.json') as json_data:
     documents = json.load(json_data)
 
 nlp = spacy.load('en_core_web_sm')
+
+
+def strip_punctuation(s):
+    return ''.join(c for c in s if c not in punctuation)
 
 
 def get_BOW_lower_nostop_alpha(sent):
@@ -73,6 +78,7 @@ for test_case in test:
         rankings.append(sim * SIMILARITY_WEIGHT)
 
     qword = get_qword(question)
+    next_token = ''
     qtype = 'misc'
     dep = ''
     head = ''
@@ -82,13 +88,12 @@ for test_case in test:
     doc = nlp(question)
 
     tokens = nltk.word_tokenize(question.lower())
-    if tokens.index(qword) < len(tokens) - 1:
-        next_token = tokens[tokens.index(qword) + 1]
-    else:
-        next_token = ''
+    if qword in tokens:
+        if tokens.index(qword) < len(tokens) - 1:
+            next_token = tokens[tokens.index(qword) + 1]
 
     if qword in ['who',"who's",'whom']:
-        qtype = 'noun'
+        qtype = 'who'
         for chunk in doc.noun_chunks:
             if qword in chunk.text:
                 dep = chunk.root.dep_
@@ -172,24 +177,24 @@ for test_case in test:
 
     elif qword in CLOSED_QUESTION_WORDS:
         qtype = 'closed'
-        index = tokens.find('or')
-        if index == -1:
-            qtype = 'others'
-            continue
-        prev1 = tokens[index-1]
-        next1 = tokens[index+1]
-        tag_tokens = nltk.pos_tag(tokens)
+        if 'or' in tokens:
+            index = tokens.index('or')
+            prev1 = tokens[index - 1]
+            next1 = tokens[index + 1]
+            tag_tokens = nltk.pos_tag(tokens)
 
-        tag = tag_tokens[index-1][1]
-        if tag in ['NN','NNP','NNS','NNPS']:
-            for chunk in doc.noun_chunks:
-                if prev1 in chunk.text:
-                    first = chunk.text
-                if next1 in chunk.text:
-                    second = chunk.text
-            closed_q_choices = (first, second)
+            tag = tag_tokens[index - 1][1]
+            if tag in ['NN', 'NNP', 'NNS', 'NNPS']:
+                for chunk in doc.noun_chunks:
+                    if prev1 in chunk.text:
+                        first = chunk.text
+                    if next1 in chunk.text:
+                        second = chunk.text
+                closed_q_choices = (first, second)
+            else:
+                closed_q_choices = (prev1, next1)
         else:
-            closed_q_choices = (prev1, next1)
+            qtype = 'others'
 
     answers = []
     max_ranking = -1
@@ -202,48 +207,53 @@ for test_case in test:
         if qtype in ['GPE','DATE','TIME','PERCENT','QUANTITY','CARDINAL',
                      'MONEY','PERSON','ORG']:
             for ent in doc.ents:
-                if ent.label_ == qtype:
+                if ent.label_ == qtype and ent.text not in question:
                     has_possible_answer = 1
                     answer = ent.text
-                    break
 
         elif qtype == 'when':
             for ent in doc.ents:
-                if ent.label_ == 'TIME' or ent.label_ == 'DATE':
+                if ent.label_ == 'TIME' or ent.label_ == 'DATE' and ent.text not in question:
                     has_possible_answer = 1
                     answer = ent.text
-                    break
 
         elif qtype == 'where':
             for ent in doc.ents:
-                if ent.label_ == 'GPE' or ent.label_ == 'LOC':
+                if ent.label_ == 'GPE' or ent.label_ == 'LOC' and ent.text not in question:
                     has_possible_answer = 1
                     answer = ent.text
-                    break
 
         elif qtype == 'how':
             for token in doc:
                 if token.head.text == head and token.head.dep_ == head_dep:
                     has_possible_answer = 1
                     answer = token.text
-                    break
 
         elif qtype == 'noun':
             for chunk in doc.noun_chunks:
-                if chunk.root.dep_ == dep and chunk.root.head.text == head and chunk.root.head.dep_ == head_dep:
+                if chunk.root.dep_ == dep and chunk.root.head.text == head and chunk.root.head.dep_ == head_dep and chunk.text not in question and chunk.text not in stop:
                     has_possible_answer = 1
                     answer = chunk.text
-                    break
+
+        elif qtype == 'who':
+            for ent in doc.ents:
+                if ent.label_ == 'PERSON' and ent.text not in question:
+                    has_possible_answer = 1
+                    answer = ent.text
+
+            if answer == '':
+                for chunk in doc.noun_chunks:
+                    if chunk.root.dep_ == dep and chunk.root.head.text == head and chunk.root.head.dep_ == head_dep and chunk.text not in question and chunk.text not in stop:
+                        has_possible_answer = 1
+                        answer = chunk.text
 
         elif qtype == 'verb':
             for token in doc:
                 if token.dep_ == 'nsubj' and token.text == subject:
                     has_possible_answer = 1
                     for token1 in doc:
-                        if token1.dep_ == 'ROOT':
+                        if token1.dep_ == 'ROOT' and token.text not in question:
                             answer = token1.text
-                            break
-                    break
 
         elif qtype == 'closed':
             first = closed_q_choices[0]
@@ -309,9 +319,9 @@ for test_case in test:
                         break
 
                 elif 'because' in sent:
-                    index = sent.index('because of')
-                    substr = sent[index + 11:]
-                    answer = substr[:-1]
+                    index = sent.index('because')
+                    substr = sent[index + 8:]
+                    answer = strip_punctuation(substr[:-1])
 
                 elif 'due to' in sent:
                     index = sent.index('due to')
@@ -321,7 +331,7 @@ for test_case in test:
                         answer = chunk.text
                         break
                     if answer == '':
-                        answer = substr[:-1]
+                        answer = strip_punctuation(substr[:-1])
 
                 elif 'reason' in sent:
                     index = sent.index('reason')
@@ -333,13 +343,13 @@ for test_case in test:
                     if answer == '':
                         index = substr.find('is')
                         if index != -1:
-                            answer = substr[index+3:-1]
+                            answer = strip_punctuation(substr[index+3:-1])
                         else:
                             index = substr.find('are')
                             if index != -1:
-                                answer = substr[index+4:-1]
+                                answer = strip_punctuation(substr[index+4:-1])
                             else:
-                                answer = sent[sent.index('reason'):-1]
+                                answer = strip_punctuation(sent[sent.index('reason'):-1])
 
                 elif 'for' in sent:
                     index = sent.index('for')
@@ -349,19 +359,12 @@ for test_case in test:
                         answer = chunk.text
                         break
                     if answer == '':
-                        answer = substr[:-1]
+                        answer = strip_punctuation(substr[:-1])
 
                 elif 'since' in sent:
                     index = sent.index('since')
                     substr = sent[index + 6:]
-                    answer = substr[:-1]
-
-        else:
-            for chunk in doc.noun_chunks:
-                if chunk.text not in question:
-                    has_possible_answer = 1
-                    answer = chunk.text
-                    break
+                    answer = strip_punctuation(substr[:-1])
 
         rankings[idx] += has_possible_answer * CORRECT_TYPE_WEIGHT
         answers.append(answer)
@@ -377,13 +380,18 @@ for test_case in test:
         sent = sents[max_idx]
         doc = nlp(sent)
         for chunk in doc.noun_chunks:
-            if chunk.text not in question:
+            if chunk.text not in question and chunk.text not in stop:
                 answer = chunk.text
                 break
+        if answer == '':
+            for chunk in doc.noun_chunks:
+                if chunk.text not in question:
+                    answer = chunk.text
+                    break
         if answer == '':
             for chunk in doc.noun_chunks:
                 answer = chunk.text
                 break
 
-    print(case_count, ',', answer, sep='')
+    print(case_count, ',', answer.lower(), sep='')
     case_count += 1
