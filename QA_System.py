@@ -51,6 +51,7 @@ def get_qword(question):
 
 
 case_count = 0
+file = open('Team_Strong.csv', 'w')
 for test_case in test:
     question = test_case['question']
     docid = test_case['docid']
@@ -393,5 +394,10 @@ for test_case in test:
                 answer = chunk.text
                 break
 
-    print(case_count, ',', answer.lower(), sep='')
+    file.write(str(case_count))
+    file.write(',')
+    file.write(answer.lower())
+    file.write('\n')
     case_count += 1
+
+file.close()
