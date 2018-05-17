@@ -2,19 +2,21 @@ import nltk
 import json
 import spacy
 from nltk.corpus import stopwords
-from sklearn.feature_extraction import DictVectorizer
-from sklearn.metrics.pairwise import cosine_distances
+from math import log
+from collections import defaultdict, Counter
 from string import punctuation
+from nltk.stem.wordnet import WordNetLemmatizer
 
 OPEN_QUESTION_WORDS = ['what','who','whose','whom','where','when','why','how',
                        'which',"what's","who's","where's","how's"]
 CLOSED_QUESTION_WORDS = ['is','are','am','was','were','do','does,','did','can',
                          'could','will','would','shall','should','have','has',
                          'had']
-SIMILARITY_WEIGHT = 0.5
-CORRECT_TYPE_WEIGHT = 0.5
 
+# Stop words
 stop = set(stopwords.words('english'))
+
+lmtz = WordNetLemmatizer()
 
 with open('testing.json') as json_data:
     test = json.load(json_data)
@@ -22,87 +24,169 @@ with open('testing.json') as json_data:
 with open('documents.json') as json_data:
     documents = json.load(json_data)
 
+# Spacy toolkit
 nlp = spacy.load('en_core_web_sm')
+
+punc = set(punctuation)
 
 
 def strip_punctuation(s):
-    return ''.join(c for c in s if c not in punctuation)
+    return ''.join(c for c in s if c not in punc)
 
 
-def get_BOW_lower_nostop_alpha(sent):
-    tokens = nltk.word_tokenize(sent)
-    BOW = {}
-    for token in tokens:
-        token = token.lower()
-        if token not in stop and token.isalpha():
-            BOW[token] = BOW.get(token, 0) + 1
-    return BOW
+def lemmatize(token):
+    lemma = lmtz.lemmatize(token, 'v')
+    if lemma == token:
+        lemma = lmtz.lemmatize(token, 'n')
+    return lemma
 
 
+def extract_term_freqs(doc):
+    tfs = {}
+    for token in nltk.word_tokenize(doc):
+        lemma = lemmatize(token.lower())
+        if lemma not in stop and lemma.isalpha():
+            tfs[lemma] = tfs.get(lemma, 0) + 1
+    return tfs
+
+
+def compute_doc_freqs(doc_term_freqs):
+    dfs = Counter()
+    for tfs in doc_term_freqs.values():
+        for term in tfs.keys():
+            dfs[term] += tfs[term]
+    return dfs
+
+
+def query_vsm(query, index, k=10):
+    accumulator = Counter()
+    for term in query:
+        postings = index[term]
+        for docid, weight in postings:
+            accumulator[docid] += weight
+    return accumulator.most_common(k)
+
+
+# Find the question word
 def get_qword(question):
-    tokens = nltk.word_tokenize(question)
+    tokens = nltk.word_tokenize(question.lower())
     for token in tokens:
-        if token.lower() in OPEN_QUESTION_WORDS:
-            return token.lower()
+        if token in OPEN_QUESTION_WORDS:
+            return token
     for token in tokens:
-        if token.lower() in CLOSED_QUESTION_WORDS:
-            return token.lower()
+        if token in CLOSED_QUESTION_WORDS:
+            return token
     return 'others'
 
 
-case_count = 0
 file = open('Team_Strong.csv', 'w')
+file.write('id,answer\n')
+
+case_count = 0
+# test = [test[17]]
 for test_case in test:
     question = test_case['question']
     docid = test_case['docid']
 
-    doc = ''
+    # Convert doc into one string, then tokenize sentences
+    corpus = ''
     for para in documents[docid]['text']:
-        doc += para + ' '
+        corpus += para + ' '
 
-    sents = nltk.sent_tokenize(doc)
+    # sentence as a document
+    raw_docs = nltk.sent_tokenize(corpus)
 
-    vectorizer = DictVectorizer()
-    BOWs = []
-    for sent in sents:
-        BOW = get_BOW_lower_nostop_alpha(sent)
-        BOWs.append(BOW)
-    vector_space = vectorizer.fit_transform(BOWs)
+    # TFIDF
+    doc_term_freqs = {}
+    for (id, raw_doc) in enumerate(raw_docs):
+        term_freqs = extract_term_freqs(raw_doc)
+        doc_term_freqs[id] = term_freqs
+    M = len(doc_term_freqs)
 
-    vector1 = vectorizer.transform(get_BOW_lower_nostop_alpha(question))
+    doc_freqs = compute_doc_freqs(doc_term_freqs)
 
-    rankings = []
-    for sent in sents:
-        vector2 = vectorizer.transform(get_BOW_lower_nostop_alpha(sent))
-        sim = 1 - cosine_distances(vector1, vector2)
+    vsm_inverted_index = defaultdict(list)
+    for docid, term_freqs in doc_term_freqs.items():
+        N = sum(term_freqs.values())
+        length = 0
 
-        rankings.append(sim * SIMILARITY_WEIGHT)
+        # find tf*idf values and accumulate sum of squares
+        tfidf_values = []
+        for term, count in term_freqs.items():
+            tfidf = float(count) / N * log(M / float(doc_freqs[term]))
+            tfidf_values.append((term, tfidf))
+            length += tfidf ** 2
 
+        # normalise documents by length and insert into index
+        length = length ** 0.5
+        for term, tfidf in tfidf_values:
+            # inversion of the indexing, term -> (doc_id, score)
+            vsm_inverted_index[term].append([docid, tfidf / length])
+
+    for term, docids in vsm_inverted_index.items():
+        docids.sort()
+
+    terms = extract_term_freqs(question)
+    results = query_vsm(terms, vsm_inverted_index)
+
+
+    # Step 2
+    # Analyse question type
     qword = get_qword(question)
+
+    # the word after question word, such as 'what value', 'which gender'
     next_token = ''
-    qtype = 'misc'
+
+    qtype = ''
+
+    # dependency parsing
     dep = ''
+
+    # head word
     head = ''
+
+    # head dependency
     head_dep = ''
-    subject = ''
+
+    # subject, root, object
+    nsubj = ''
+    ROOT = ''
+    dobj = ''
+
+    # yes or no questions have two options
     closed_q_choices = ('', '')
+
     doc = nlp(question)
 
     tokens = nltk.word_tokenize(question.lower())
+
+    # get next word
     if qword in tokens:
         if tokens.index(qword) < len(tokens) - 1:
             next_token = tokens[tokens.index(qword) + 1]
 
-    if qword in ['who',"who's",'whom']:
-        qtype = 'who'
-        for chunk in doc.noun_chunks:
-            if qword in chunk.text:
-                dep = chunk.root.dep_
-                head = chunk.root.head.text
-                head_dep = chunk.root.head.dep_
+    # get structure of sentence
+    for token in doc:
+        if 'nsubj' in token.dep_:
+            nsubj = lemmatize(strip_punctuation(token.text))
+        if token.dep_ == 'ROOT':
+            ROOT = lemmatize(strip_punctuation(token.text))
+        if 'dobj' in token.dep_:
+            dobj = lemmatize(strip_punctuation(token.text))
 
-    elif qword == 'whose':
-        qtype = 'PERSON'
+    # for noun (phrase) questions, get answer dependency
+    for chunk in doc.noun_chunks:
+        if qword in chunk.text:
+            dep = chunk.root.dep_
+            head = lemmatize(strip_punctuation(chunk.root.head.text))
+            head_dep = chunk.root.head.dep_
+
+    # determine answer type and parsing
+    if 'stand for' in question or 'abbreviat' in question:
+        qtype = 'abrv'
+
+    elif qword in ['who',"who's",'whom','whose']:
+        qtype = 'who'
 
     elif qword == 'when':
         qtype = 'when'
@@ -117,67 +201,130 @@ for test_case in test:
             qtype = 'CARDINAL'
         elif next_token == 'long':
             qtype = 'DATE'
-        elif next_token in ['far','big','wide','deep','tall','high']:
+        elif next_token in ['far','big','wide','deep','tall','high','fast','heavy']:
             qtype = 'QUANTITY'
         elif next_token in ['old','young']:
             qtype = 'DATE'
-        else:
-            qtype = 'how'
-            for token in doc:
-                if token.text == qword:
-                    head = token.head.text
-                    head_dep = token.head.dep_
-                    break
+        elif next_token in ['does','did','do','have','has','had','should',
+                              'can','could','will','would','must']:
+            if dobj != '':
+                qtype = 'adj'
+            else:
+                qtype = 'verb'
 
     elif qword in ['what', "what's", 'which']:
-        if next_token in ['place','year','day','month','age','decade','century']:
+
+        if 'year'in tokens or \
+                'day' in tokens or \
+                'month' in tokens or \
+                'era' in tokens or \
+                'age' in tokens or \
+                'century' in tokens or \
+                'week' in tokens or \
+                'period' in tokens or \
+                'dynasty' in tokens:
             qtype = 'DATE'
-        elif next_token == 'time':
-            qtype = 'TIME'
-        elif next_token in ['city','country','state']:
+
+        elif 'company' in tokens or \
+                'organization' in tokens or \
+                'organisation' in tokens or \
+                'corporation' in tokens or \
+                'institution' in tokens or \
+                'university' in tokens or \
+                'corporation' in tokens or \
+                'association' in tokens or \
+                'union' in tokens or \
+                'agency' in tokens:
+            qtype = 'ORG'
+
+        elif 'city' in tokens or \
+                'country' in tokens or \
+                'state' in tokens or \
+                'province' in tokens or \
+                'county' in tokens:
             qtype = 'GPE'
-        elif next_token in ['place','river','mountain','ocean','sea','lake','continent','location']:
+
+        elif 'place' in tokens or \
+                'river' in tokens or \
+                'mountain' in tokens or \
+                'ocean' in tokens or \
+                'region' in tokens or \
+                'area' in tokens or \
+                'sea' in tokens or \
+                'lake' in tokens or \
+                'continent' in tokens or \
+                'location' in tokens or \
+                'forest' in tokens or \
+                'jungle' in tokens:
             qtype = 'LOC'
-        elif next_token == 'percentage':
+
+        elif 'nationality' in tokens:
+            qtype = 'NORP'
+
+        elif 'building' in tokens or \
+            'airport' in tokens or \
+            'highway' in tokens or \
+            'bridge' in tokens or \
+            'harbour' in tokens or \
+            'harbor' in tokens or \
+            'port' in tokens or \
+            'dam' in tokens:
+            qtype = 'FACILITY'
+
+        elif 'hurricane' in tokens or \
+            'battle' in tokens or \
+            'war' in tokens:
+            qtype = 'EVENT'
+
+        elif 'book' in tokens or \
+            'novel' in tokens or \
+            'song' in tokens or \
+            'music' in tokens or \
+            'painting' in tokens:
+            qtype = 'WORK_OF_ART'
+
+        elif 'language' in tokens or \
+                'speak' in tokens:
+            qtype = 'LANGUAGE'
+
+        elif 'percentage' in tokens or 'percent' in tokens:
             qtype = 'PERCENT'
-        elif next_token == 'value':
+
+        elif 'value' in tokens or \
+                'distance' in tokens or \
+                'size' in tokens or \
+                'length' in tokens or \
+                'depth' in tokens or \
+                'height' in tokens or \
+                'density' in tokens or \
+                'speed' in tokens or \
+                'weight' in tokens or \
+                'area' in tokens or \
+                'temperature' in tokens or \
+                'volume' in tokens:
             qtype = 'QUANTITY'
-        elif next_token == 'number':
+
+        elif 'number' in tokens:
             qtype = 'CARDINAL'
-        elif next_token == 'price':
+
+        elif 'price' in tokens:
             qtype = 'MONEY'
+
         else:
-            tag = nltk.pos_tag([next_token])[0][1]
-            if tag in ['NN','NNS','NNP','NNPS']:
-                qtype = 'noun'
-                for chunk in doc.noun_chunks:
-                    if qword in chunk.text:
-                        dep = chunk.root.dep_
-                        head = chunk.root.head.text
-                        head_dep = chunk.root.head.dep_
-                        break
+            # what...do type question
+            tokens.remove(next_token)
+            if 'do' in tokens:
+                qtype = 'verb'
             else:
-                tokens.remove(next_token)
-                if 'do' in tokens:
-                    qtype = 'verb'
-                    for token in doc:
-                        if token.dep_ == 'nsubj':
-                            subject = token.text
-                            break
-                else:
-                    qtype = 'noun'
-                    for chunk in doc.noun_chunks:
-                        if qword in chunk.text:
-                            dep = chunk.root.dep_
-                            head = chunk.root.head.text
-                            head_dep = chunk.root.head.dep_
-                            break
+                qtype = 'noun'
 
     elif qword == 'why':
         qtype = 'why'
 
     elif qword in CLOSED_QUESTION_WORDS:
         qtype = 'closed'
+
+        # answer is one of the 'or' options in the question
         if 'or' in tokens:
             index = tokens.index('or')
             prev1 = tokens[index - 1]
@@ -185,6 +332,8 @@ for test_case in test:
             tag_tokens = nltk.pos_tag(tokens)
 
             tag = tag_tokens[index - 1][1]
+
+            # if answer is a noun
             if tag in ['NN', 'NNP', 'NNS', 'NNPS']:
                 for chunk in doc.noun_chunks:
                     if prev1 in chunk.text:
@@ -197,74 +346,257 @@ for test_case in test:
         else:
             qtype = 'others'
 
-    answers = []
-    max_ranking = -1
-    max_idx = -1
-    for (idx, sent) in enumerate(sents):
-        doc = nlp(sent)
-        has_possible_answer = 0
-        answer = ''
+    # find answer with highest score from the 10 most similar sentences
+    max_score = -1
+    answer = ''
 
-        if qtype in ['GPE','DATE','TIME','PERCENT','QUANTITY','CARDINAL',
-                     'MONEY','PERSON','ORG']:
-            for ent in doc.ents:
-                if ent.label_ == qtype and ent.text not in question:
-                    has_possible_answer = 1
-                    answer = ent.text
+    for id, _ in results:
+        sent = raw_docs[id]
+        doc = nlp(sent)
+
+        # find sentence structure
+        # sent_nsubj = ''
+        # sent_ROOT = ''
+        # sent_dobj = ''
+        # for token in doc:
+        #     if 'nsubj' in token.dep_:
+        #         sent_nsubj = lemmatize(strip_punctuation(token.text))
+        #     if token.dep_ == 'ROOT':
+        #         sent_ROOT = lemmatize(strip_punctuation(token.text))
+        #     if 'dobj' in token.dep_:
+        #         sent_dobj = lemmatize(strip_punctuation(token.text))
+
+        sent_score = 0
+        # if nsubj == sent_nsubj:
+        #     sent_score += 1
+        # if ROOT == sent_ROOT:
+        #     sent_score += 1
+        # if dobj == sent_dobj:
+        #     sent_score += 1
+
+        if qtype == 'who':
+            for np in doc.noun_chunks:
+                score = sent_score
+
+                if np in doc.ents:
+                    for ent in doc.ents:
+                        if ent.text == np.text:
+                            if ent.label_ == 'PERSON':
+                                score += 2
+
+                # find NP dependency
+                np_dep = np.root.dep_
+                np_head = lemmatize(strip_punctuation(np.root.head.text))
+                np_head_dep = np.root.head.dep_
+
+                if np_dep == dep:
+                    score += 1
+                if np_head == head:
+                    score += 1
+                if np_head_dep == head_dep:
+                    score += 1
+
+                if np.text not in question:
+                    score += 1
+
+                if strip_punctuation(np.text).strip().lower() not in stop:
+                    score += 1
+
+                if np.text.lower() == 'it':
+                    score = -1
+
+                if score > max_score:
+                    max_score = score
+                    answer = np.text
 
         elif qtype == 'when':
             for ent in doc.ents:
-                if ent.label_ == 'TIME' or ent.label_ == 'DATE' and ent.text not in question:
-                    has_possible_answer = 1
+                score = sent_score
+
+                if ent.label_ == 'TIME' or ent.label_ == "DATE":
+                    score += 5
+
+                if ent.text not in question:
+                    score += 1
+
+                if score > max_score:
+                    max_score = score
                     answer = ent.text
 
         elif qtype == 'where':
             for ent in doc.ents:
-                if ent.label_ == 'GPE' or ent.label_ == 'LOC' and ent.text not in question:
-                    has_possible_answer = 1
+                score = sent_score
+
+                if ent.label_ == 'GPE' or ent.label_ == "LOC":
+                    score += 5
+
+                if ent.text not in question:
+                    score += 1
+
+                if score > max_score:
+                    max_score = score
                     answer = ent.text
 
-        elif qtype == 'how':
-            for token in doc:
-                if token.head.text == head and token.head.dep_ == head_dep:
-                    has_possible_answer = 1
-                    answer = token.text
+        elif qtype in ['LANGUAGE','WORK_OF_ART','EVENT','NORP','FACILITY',
+                       'GPE','DATE','TIME','PERCENT','QUANTITY','CARDINAL',
+                     'MONEY','PERSON','ORG','LOC']:
+            for ent in doc.ents:
+                score = sent_score
+
+                if ent.label_ == qtype:
+                    score += 5
+
+                if ent.text not in question:
+                    score += 1
+
+                ent_dep = ent.root.dep_
+                ent_head = lemmatize(strip_punctuation(ent.root.head.text))
+                ent_head_dep = ent.root.head.dep_
+
+                if ent_dep == dep:
+                    score += 1
+                if ent_head == head:
+                    score += 1
+                if ent_head_dep == head_dep:
+                    score += 1
+
+                if score > max_score:
+                    max_score = score
+                    answer = ent.text
+
+        elif qtype == 'abrv':
+            abrv = ''
+            qdoc = nlp(question)
+            for token in qdoc:
+                text = token.text
+                if len(text) >= 2 and text.isupper() and text.isalpha():
+                    abrv = text.lower()
+
+            if abrv == '' and 'stand for' in question:
+                tokens = question.lower().split(' ')
+                abrv = tokens[tokens.index('stand')-1]
+
+            if abrv != '':
+                tokens = nltk.word_tokenize(sent)
+                for (i, token) in enumerate(tokens):
+                    if token[0].isupper():
+                        k = 1
+                        phrase = token.lower()
+                        initials = phrase[0]
+
+                        while i+k < len(tokens) and tokens[i+k][0].isupper():
+                            phrase = phrase + ' ' + tokens[i+k].lower()
+                            initials += tokens[i+k][0].lower()
+                            k += 1
+
+                        phrase = phrase.strip()
+                        if initials == abrv:
+                            answer = phrase
+
+            else:
+                tokens = nltk.word_tokenize(question)
+                for (i, token) in enumerate(tokens):
+                    if token[0].isupper():
+                        k = 1
+                        initials = token[0].lower()
+
+                        while i + k < len(tokens) and tokens[i + k][0].isupper():
+                            initials += tokens[i + k][0].lower()
+                            k += 1
+
+                        if len(initials) >= 2:
+                            answer = initials
 
         elif qtype == 'noun':
-            for chunk in doc.noun_chunks:
-                if chunk.root.dep_ == dep and chunk.root.head.text == head and chunk.root.head.dep_ == head_dep and chunk.text not in question and chunk.text not in stop:
-                    has_possible_answer = 1
-                    answer = chunk.text
+            for np in doc.noun_chunks:
+                score = sent_score
 
-        elif qtype == 'who':
-            for ent in doc.ents:
-                if ent.label_ == 'PERSON' and ent.text not in question:
-                    has_possible_answer = 1
-                    answer = ent.text
+                np_dep = np.root.dep_
+                np_head = lemmatize(strip_punctuation(np.root.head.text))
+                np_head_dep = np.root.head.dep_
 
-            if answer == '':
-                for chunk in doc.noun_chunks:
-                    if chunk.root.dep_ == dep and chunk.root.head.text == head and chunk.root.head.dep_ == head_dep and chunk.text not in question and chunk.text not in stop:
-                        has_possible_answer = 1
-                        answer = chunk.text
+                if np_dep == dep:
+                    score += 1
+                if np_head == head:
+                    score += 1
+                if np_head_dep == head_dep:
+                    score += 1
+
+                if np.text not in question:
+                    score += 1
+
+                if strip_punctuation(np.text).strip().lower() not in stop:
+                    score += 1
+
+                if np.text.lower() == 'it':
+                    score = -1
+
+                if score > max_score:
+                    max_score = score
+                    answer = np.text
+
+        elif qtype == 'adj':
+            for token in doc:
+                score = sent_score
+                
+                if 'advmod' in token.dep_ or 'acomp' in token.dep_:
+                    score += 5
+
+                token_dep = token.dep_
+                token_head = lemmatize(strip_punctuation(token.head.text))
+                token_head_dep = token.head.dep_
+
+                if token_dep == dep:
+                    score += 1
+                if token_head == head:
+                    score += 1
+                if token_head_dep == head_dep:
+                    score += 1
+
+                if token.text not in question:
+                    score += 1
+
+                if strip_punctuation(token.text).strip().lower() not in stop:
+                    score += 1
+
+                if token.text.lower() == 'it':
+                    score = -1
+
+                if score > max_score:
+                    max_score = score
+                    answer = token.text
 
         elif qtype == 'verb':
             for token in doc:
-                if token.dep_ == 'nsubj' and token.text == subject:
-                    has_possible_answer = 1
-                    for token1 in doc:
-                        if token1.dep_ == 'ROOT' and token.text not in question:
-                            answer = token1.text
+                score = sent_score
+
+                if token.dep_ == 'ROOT':
+                    score += 5
+
+                if lemmatize(strip_punctuation(token.text)) not in \
+                        [lemmatize(strip_punctuation(s)) for s in nltk.word_tokenize(question)]:
+                    score += 1
+
+                if strip_punctuation(token.text).strip().lower() not in stop:
+                    score += 1
+
+                if score > max_score:
+                    max_score = score
+                    answer = token.text
 
         elif qtype == 'closed':
+            score = sent_score
+
             first = closed_q_choices[0]
             second = closed_q_choices[1]
+
+            # whether each option appears (and is negates)
             appear1 = False
             appear2 = False
             negate1 = False
             negate2 = False
             neg_count = 0
-            tokens = nltk.word_tokenize(sent)
+            tokens = nltk.word_tokenize(raw_docs[id])
 
             for (index, token) in enumerate(tokens):
                 if token == 'not' or "n't" in token:
@@ -281,123 +613,139 @@ for test_case in test:
                 if token == second:
                     appear2 = True
 
-            if (not appear1) and (not appear2):
-                answer = second
-
-            elif appear1 and not appear2:
-                has_possible_answer = 1
+            possible_answer = ''
+            if appear1 and not appear2:
                 if neg_count % 2 == 1:
-                    answer = second
+                    possible_answer = second
                 else:
-                    answer = first
+                    possible_answer = first
 
             elif appear2 and not appear1:
-                has_possible_answer = 1
                 if neg_count % 2 == 0:
-                    answer = second
+                    possible_answer = second
                 else:
-                    answer = first
+                    possible_answer = first
 
-            else:
-                has_possible_answer = 1
+            elif appear1 and appear2:
                 if negate1 and not negate2:
-                    answer = second
+                    possible_answer = second
                 elif negate2 and not negate1:
-                    answer = first
+                    possible_answer = first
                 else:
-                    answer = second
+                    possible_answer = second
+
+            if possible_answer != '':
+                score += 5
+                if score > max_score:
+                    max_score = score
+                    answer = possible_answer
 
         elif qtype == 'why':
+            score = sent_score
+            possible_answer = ''
+
             if 'reason' in sent or 'because' in sent or 'due to' in sent or 'since' in sent or 'for' in sent:
-                has_possible_answer = 1
 
                 if 'because of' in sent:
+                    score += 3
                     index = sent.index('because of')
                     substr = sent[index+11:]
                     span = nlp(substr)
                     for chunk in span.noun_chunks:
-                        answer = chunk.text
+                        possible_answer = chunk.text
                         break
 
                 elif 'because' in sent:
+                    score += 3
                     index = sent.index('because')
                     substr = sent[index + 8:]
-                    answer = strip_punctuation(substr[:-1])
+                    possible_answer = substr
 
                 elif 'due to' in sent:
+                    score += 3
                     index = sent.index('due to')
                     substr = sent[index+7:]
                     span = nlp(substr)
                     for chunk in span.noun_chunks:
-                        answer = chunk.text
+                        possible_answer = chunk.text
                         break
-                    if answer == '':
-                        answer = strip_punctuation(substr[:-1])
+                    if possible_answer == '':
+                        possible_answer = substr
 
                 elif 'reason' in sent:
+                    score += 2
                     index = sent.index('reason')
                     substr = sent[index+7:]
                     span = nlp(substr)
                     for chunk in span.noun_chunks:
-                        answer = chunk.text
+                        possible_answer = chunk.text
                         break
-                    if answer == '':
+                    if possible_answer == '':
                         index = substr.find('is')
                         if index != -1:
-                            answer = strip_punctuation(substr[index+3:-1])
+                            possible_answer = substr[index+3]
                         else:
-                            index = substr.find('are')
+                            index = substr.find('was')
                             if index != -1:
-                                answer = strip_punctuation(substr[index+4:-1])
+                                possible_answer = substr[index+4]
                             else:
-                                answer = strip_punctuation(sent[sent.index('reason'):-1])
+                                possible_answer = sent[sent.index('reason'):]
 
                 elif 'for' in sent:
+                    score += 1
                     index = sent.index('for')
                     substr = sent[index + 4:]
                     span = nlp(substr)
                     for chunk in span.noun_chunks:
-                        answer = chunk.text
+                        possible_answer = chunk.text
                         break
-                    if answer == '':
-                        answer = strip_punctuation(substr[:-1])
+                    if possible_answer == '':
+                        possible_answer = substr
 
                 elif 'since' in sent:
+                    score += 1
                     index = sent.index('since')
                     substr = sent[index + 6:]
-                    answer = strip_punctuation(substr[:-1])
+                    possible_answer = substr
 
-        rankings[idx] += has_possible_answer * CORRECT_TYPE_WEIGHT
-        answers.append(answer)
+                if possible_answer != '' and score > max_score:
+                    answer = possible_answer
+                    max_score = score
 
-        if rankings[idx] > max_ranking:
-            max_ranking = rankings[idx]
-            max_idx = idx
-
-    answer = ''
-    if answers[max_idx] != '':
-        answer = answers[max_idx]
-    else:
-        sent = sents[max_idx]
-        doc = nlp(sent)
-        for chunk in doc.noun_chunks:
-            if chunk.text not in question and chunk.text not in stop:
-                answer = chunk.text
-                break
+        # if answer not found, find noun phrases
         if answer == '':
-            for chunk in doc.noun_chunks:
-                if chunk.text not in question:
-                    answer = chunk.text
-                    break
-        if answer == '':
-            for chunk in doc.noun_chunks:
-                answer = chunk.text
-                break
+            for np in doc.noun_chunks:
+                score = sent_score
+
+                np_dep = np.root.dep_
+                np_head = lemmatize(strip_punctuation(np.root.head.text))
+                np_head_dep = np.root.head.dep_
+
+                if np_dep == dep:
+                    score += 1
+                if np_head == head:
+                    score += 1
+                if np_head_dep == head_dep:
+                    score += 1
+
+                if np.text not in question:
+                    score += 1
+
+                if strip_punctuation(np.text).strip().lower() not in stop:
+                    score += 1
+
+                if np.text.lower() == 'it':
+                    score = -1
+
+                if score > max_score:
+                    max_score = score
+                    answer = np.text
 
     file.write(str(case_count))
     file.write(',')
-    file.write(answer.lower())
+    file.write(strip_punctuation(answer).strip().lower())
     file.write('\n')
+    print(case_count,' ',answer)
     case_count += 1
 
 file.close()
