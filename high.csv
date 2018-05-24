@@ -55,12 +55,12 @@ id,answer
 53,browser extension
 54,4.5 hour
 55,carrefour boycott
-56,relay
+56,chinese media
 57,protests
 58,several protests
 59,noted indian social activist
 60,united states of america
-61,one
+61,several protests
 62,site
 63,western media
 64,uk
@@ -110,7 +110,7 @@ id,answer
 108,libération
 109,indian
 110,costanera sur
-111,relay
+111,original 20 km relay
 112,1200
 113,assurances
 114,man
@@ -148,7 +148,7 @@ id,answer
 146,two
 147,chinese
 148,ladbroke grove
-149,"april 1, 2008"
+149,april 5
 150,"2,200 police"
 151,120
 152,response
@@ -165,7 +165,7 @@ id,answer
 163,francesca martinez
 164,number
 165,first time
-166,olympia
+166,ali mohamed shein
 167,daily telegraph
 168,susan prager
 169,torch
@@ -283,7 +283,7 @@ id,answer
 281,macao daily news
 282,paralympic games
 283,may 4
-284,supervisors
+284,call
 285,sanya
 286,great britain
 287,bangkok
@@ -294,7 +294,7 @@ id,answer
 292,buenos aires
 293,trocadéro
 294,one
-295,western europe
+295,trocadéro
 296,people's daily
 297,april 9
 298,tibetan flags
@@ -307,7 +307,7 @@ id,answer
 305,relay
 306,china
 307,several hundred pro-tibet protesters
-308,carlos espínola
+308,several protests
 309,intended torchbearer lin hatfield dodds
 310,"85,000"
 311,peter ueberroth
@@ -345,7 +345,7 @@ id,answer
 343,lê minh phiếu
 344,united states of america
 345,torch
-346,francesca martinez
+346,event
 347,protests
 348,kamal nath
 349,april 16
@@ -406,7 +406,7 @@ id,answer
 404,latter half of the 20th century
 405,october 2014
 406,hamtun
-407,1920s
+407,15th century
 408,1940s
 409,southampton's largest retail centre
 410,english
@@ -468,7 +468,7 @@ id,answer
 466,27 june 1640
 467,college
 468,9th century
-469,centuries
+469,1339
 470,1233
 471,university hospital southampton nhs foundation trust
 472,biggest operator
@@ -588,7 +588,7 @@ id,answer
 586,southampton
 587,24 february 1964
 588,18th-century
-589,university of southampton
+589,city
 590,march 2007
 591,university of southampton
 592,three
@@ -639,7 +639,7 @@ id,answer
 637,town
 638,council
 639,1944
-640,1976
+640,9th century
 641,june
 642,1310
 643,england
@@ -687,7 +687,7 @@ id,answer
 685,northern tip
 686,king henry's departure
 687,france
-688,1959
+688,so'ton
 689,uk
 690,swaythling
 691,premier league
@@ -857,7 +857,7 @@ id,answer
 855,high-altitude clouds
 856,voyager
 857,1:1 resonance
-858,100 kpa
+858,weather
 859,1843
 860,winds
 861,occultation
@@ -1018,7 +1018,7 @@ id,answer
 1016,jefferson's metaphor
 1017,umayyad dynasty mosaic making
 1018,constantinople
-1019,rome
+1019,venetian
 1020,one solsternus
 1021,earliest examples
 1022,fragments
@@ -1100,7 +1100,7 @@ id,answer
 1098,santa constanza
 1099,damascus
 1100,5th-century
-1101,italy
+1101,byzantine
 1102,styles
 1103,greek inscriptions
 1104,only surviving 12th-century mosaic work
@@ -1118,7 +1118,7 @@ id,answer
 1116,constantinople
 1117,middle ages
 1118,symbolism
-1119,rome
+1119,santa maria
 1120,abbot
 1121,julii
 1122,venetian
@@ -1148,14 +1148,14 @@ id,answer
 1146,sosus
 1147,constantine monomachos
 1148,roger ii
-1149,map
+1149,saint gervasius
 1150,1589
 1151,constantine monomachos
 1152,venetian craftsmen
 1153,limoges
 1154,5th-century
 1155,iconoclastic era
-1156,2000
+1156,1930
 1157,seasons
 1158,double indirect method
 1159,17th–19th centuries
@@ -1164,7 +1164,7 @@ id,answer
 1162,1960s
 1163,calçada portuguesa
 1164,64 ad
-1165,albania
+1165,gelati
 1166,calçada portuguesa
 1167,constantinople
 1168,golden gate
@@ -1182,7 +1182,7 @@ id,answer
 1180,official united states
 1181,obama
 1182,"estimated 200,000"
-1183,independent years
+1183,october
 1184,early civilisations
 1185,myanmar
 1186,first
@@ -1335,7 +1335,7 @@ id,answer
 1333,second
 1334,walachia
 1335,12 july
-1336,ukraine
+1336,339
 1337,august 1855
 1338,black sea
 1339,31 december 1853
@@ -1349,7 +1349,7 @@ id,answer
 1347,crimean war
 1348,movement
 1349,omar pasha
-1350,omar pasha
+1350,nicholas
 1351,parliament
 1352,constantinople
 1353,åland islands
@@ -1400,7 +1400,7 @@ id,answer
 1398,principalities
 1399,black sea
 1400,vidin
-1401,gallipoli
+1401,russians
 1402,may
 1403,calafat
 1404,time
@@ -1434,7 +1434,7 @@ id,answer
 1432,april
 1433,omar pasha
 1434,5 september
-1435,crimean war
+1435,uk
 1436,february
 1437,ottoman army
 1438,russians
@@ -1482,7 +1482,7 @@ id,answer
 1480,civilian engineering crew
 1481,30 march 1856
 1482,russia
-1483,4000
+1483,30000
 1484,sevastopol
 1485,paris
 1486,popularisation
@@ -1503,7 +1503,7 @@ id,answer
 1501,yongzheng
 1502,1623
 1503,pro-japanese koreans
-1504,xinjiang
+1504,ming dynasty
 1505,sixty-one year
 1506,1750
 1507,france
@@ -1512,18 +1512,18 @@ id,answer
 1510,eight
 1511,qing dynasty
 1512,1900
-1513,empire of the great qing
+1513,ming dynasty
 1514,beijing
 1515,yongzheng
 1516,diplomatic and strategic problems
 1517,instead
-1518,li zicheng
+1518,ming dynasty
 1519,qing armies
 1520,first opium war
 1521,yuan shikai
 1522,hooge
 1523,"3,400"
-1524,china
+1524,1905
 1525,peasant rebels
 1526,britain
 1527,empire
@@ -1532,7 +1532,7 @@ id,answer
 1530,1641
 1531,1850s
 1532,team
-1533,yingzhen
+1533,zhu zhiliang
 1534,shunzhi emperor
 1535,two
 1536,citation
@@ -1564,7 +1564,7 @@ id,answer
 1562,ming general wu sangui
 1563,yuan shikai
 1564,manchuria
-1565,prince gui
+1565,chongzhen emperor
 1566,ten great campaigns
 1567,18th century
 1568,1930s
@@ -1580,13 +1580,13 @@ id,answer
 1578,xinjiang
 1579,british
 1580,"400,000"
-1581,beijing
+1581,daoguang emperor
 1582,dungan revolt
 1583,ming dynasty
 1584,1930s
 1585,yingzhen
 1586,late 19th century
-1587,dungan revolt
+1587,western powers
 1588,calligraphy
 1589,problems
 1590,jiangnan
@@ -1610,7 +1610,7 @@ id,answer
 1608,yuan
 1609,turnover
 1610,"400,000"
-1611,1901
+1611,1861 and 1873
 1612,qing emperors
 1613,early manchu rulers
 1614,qing
@@ -1620,11 +1620,11 @@ id,answer
 1618,1858
 1619,han bannermen
 1620,eight regional viceroys
-1621,three
+1621,18
 1622,majority
 1623,ming dynasty
 1624,jiading
-1625,two
+1625,17
 1626,cabinet
 1627,1681
 1628,1683
@@ -1669,7 +1669,7 @@ id,answer
 1667,five
 1668,qing
 1669,qing
-1670,wu sangui
+1670,shang kexi
 1671,remaining banners
 1672,another seventeen years
 1673,multi-ethnic force
@@ -1679,7 +1679,7 @@ id,answer
 1677,1683
 1678,beijing
 1679,ming han chinese armies
-1680,qing dynasty
+1680,qing
 1681,qing
 1682,suiyuan shidan
 1683,qing dynasty
@@ -1694,7 +1694,7 @@ id,answer
 1692,emperors
 1693,1641
 1694,dorgon's controversial july 1645 edict
-1695,classically educated official
+1695,li zicheng
 1696,november
 1697,units
 1698,early manchu rulers
@@ -1704,7 +1704,7 @@ id,answer
 1702,yaqub beg
 1703,wu
 1704,chinese
-1705,move
+1705,units
 1706,manchuria
 1707,eight years old
 1708,guangxu
@@ -1765,7 +1765,7 @@ id,answer
 1763,willett's 1907 proposal
 1764,1907
 1765,3.5 %
-1766,germany
+1766,dst
 1767,2005
 1768,2005
 1769,keeps
@@ -1797,7 +1797,7 @@ id,answer
 1795,example
 1796,dst
 1797,november
-1798,reduces
+1798,several studies
 1799,1970s
 1800,older form
 1801,march 2011
@@ -1821,12 +1821,12 @@ id,answer
 1819,people
 1820,time zone differences
 1821,early goal
-1822,one reason
+1822,
 1823,daylight
 1824,regions
 1825,kingsford charcoal
 1826,1999 study
-1827,many
+1827,many enactments
 1828,one
 1829,year-independent way
 1830,autumn and two hours
@@ -1862,11 +1862,11 @@ id,answer
 1860,example
 1861,summer
 1862,taxing shutters
-1863,muslim
+1863,hyphenated
 1864,andrew peters
 1865,dst
 1866,much as 11 %
-1867,summer
+1867,day
 1868,similar twice-yearly tasks
 1869,2005
 1870,dairy farmers
@@ -1884,7 +1884,7 @@ id,answer
 1882,2005
 1883,1983
 1884,los angeles
-1885,drummer steven adler
+1885,dick dale
 1886,end of the decade
 1887,scottish
 1888,2008
@@ -1988,7 +1988,7 @@ id,answer
 1986,kansas union
 1987,wichita
 1988,j-school's students
-1989,1954
+1989,four year
 1990,first
 1991,kansas public radio station kanu
 1992,"2,100"
@@ -2017,21 +2017,21 @@ id,answer
 2015,"university of kansas school of architecture , design"
 2016,"2,100"
 2017,university of kansas school of business
-2018,lawrence
+2018,america’s first foundation
 2019,university of kansas school of business
 2020,university
 2021,daily
 2022,medical center and university hospital
 2023,mark mangino
-2024,university of kentucky
+2024,"june 8, 2013"
 2025,designintelligence
 2026,emporia
 2027,ku's academic computing department
 2028,university of kansas school of business
-2029,university of kentucky
+2029,1890
 2030,university of kansas school of business
 2031,1891
-2032,lynx
+2032,educational and research sites
 2033,ku cross country
 2034,citation
 2035,one
@@ -2318,7 +2318,7 @@ id,answer
 2316,scientists
 2317,anthropologists
 2318,
-2319,subsequent influential classifications
+2319,majority
 2320,non-african groups
 2321,last two decades of the 18th century
 2322,clade
@@ -2591,7 +2591,7 @@ id,answer
 2589,2008
 2590,dates
 2591,ruled
-2592,treaties
+2592,agreement
 2593,add
 2594,articles
 2595,states
@@ -2650,9 +2650,9 @@ id,answer
 2648,1189
 2649,eight
 2650,1953
-2651,1 may
+2651,citation
 2652,1872
-2653,two years
+2653,2001 and 2006
 2654,february 2012
 2655,1954 fifa world cup
 2656,1974
@@ -2730,7 +2730,7 @@ id,answer
 2728,traditional foods
 2729,sixth form students
 2730,year
-2731,international monetary fund 2010 report
+2731,davis
 2732,5 september
 2733,charles hedley
 2734,island
@@ -2742,7 +2742,7 @@ id,answer
 2740,cyclone bebe
 2741,major international priority
 2742,coral bleaching
-2743,$ $ 2.2 million
+2743,$ 2.2 million
 2744,tuvalu participates
 2745,1900
 2746,islands
@@ -2853,14 +2853,14 @@ id,answer
 2851,october
 2852,macintosh
 2853,macintosh ii
-2854,$ $ 2.5 million
+2854,$ 2.5 million
 2855,steve jobs
 2856,may 1990
 2857,new imac
 2858,us $ 1.5 million
 2859,39 advertising pages
 2860,"estimated 100,000"
-2861,jobs
+2861,jef raskin
 2862,2000
 2863,john dvorak
 2864,1997
@@ -3046,7 +3046,7 @@ id,answer
 3044,human sacrifice
 3045,security
 3046,edict
-3047,historian livy
+3047,public festivals
 3048,camp
 3049,constantine
 3050,roman women
@@ -3058,7 +3058,7 @@ id,answer
 3056,vergil
 3057,valerian's first religious edict
 3058,di immortales
-3059,bona dea
+3059,roman
 3060,roman camps
 3061,ruins
 3062,(509–27 bc
@@ -3076,7 +3076,7 @@ id,answer
 3074,most important camp-offering
 3075,several days
 3076,women
-3077,minerva
+3077,dictator
 3078,public festivals
 3079,edict
 3080,opportunities
@@ -3086,7 +3086,7 @@ id,answer
 3084,punic crisis
 3085,human sacrifice
 3086,roman oaths
-3087,hitherto
+3087,least
 3088,office
 3089,jupiter latiaris
 3090,religious dimensions
@@ -3167,7 +3167,7 @@ id,answer
 3165,roman architect vitruvius
 3166,rome
 3167,decius mus
-3168,divine consideration
+3168,everyday world
 3169,presence
 3170,regal era
 3171,edict
@@ -3354,7 +3354,7 @@ id,answer
 3352,federal constitution
 3353,states
 3354,transactions
-3355,actual substance
+3355,other major implication
 3356,18th and 19th centuries
 3357,law
 3358,u.s.
@@ -3364,7 +3364,7 @@ id,answer
 3362,public laws
 3363,tort law
 3364,constitution
-3365,constitution
+3365,federal courts
 3366,united states
 3367,turn
 3368,subsequent statute
@@ -3404,7 +3404,7 @@ id,answer
 3402,italians
 3403,swedish
 3404,dialect
-3405,serbia
+3405,ukraine
 3406,1996
 3407,joseph wright
 3408,public environment
@@ -3425,7 +3425,7 @@ id,answer
 3423,world war i
 3424,modern nationalism
 3425,opposite example
-3426,arabic
+3426,interlingua
 3427,arabic
 3428,yiddish speaker
 3429,northern germany
@@ -3452,7 +3452,7 @@ id,answer
 3450,1860s
 3451,sardinia
 3452,19th century
-3453,"language—""everybody"
+3453,dialects
 3454,example
 3455,german
 3456,caribbean coast
@@ -3487,7 +3487,7 @@ id,answer
 3485,danger
 3486,red ochre
 3487,most common colors
-3488,mexico
+3488,boston
 3489,ancient rome
 3490,roman general
 3491,red
